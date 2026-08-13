@@ -33,30 +33,43 @@ export default async function handler(req: any, res: any) {
       });
     }
 
-    const conversation = [
-      ...(Array.isArray(history)
-        ? history.map((item: any) => ({
-            role: item.role === "assistant" ? "model" : "user",
-            content: item.content,
-          }))
-        : []),
-      {
-        role: "user",
-        content: message,
-      },
-    ];
+    // Convert previous messages into text
+    let conversation = "";
+
+    if (Array.isArray(history)) {
+      conversation = history
+        .map((item: any) => {
+          const speaker =
+            item.role === "assistant"
+              ? "April"
+              : "User";
+
+          return `${speaker}: ${item.content}`;
+        })
+        .join("\n\n");
+    }
+
+    // Add the current message
+    conversation += `\n\nUser: ${message}`;
 
     const interaction = await ai.interactions.create({
       model: "gemini-3.6-flash",
 
       system_instruction:
         systemInstruction ||
-        "You are a helpful AI assistant.",
+        `You are April, a helpful AI Bible Assistant.
 
-      input: conversation.map((item) => ({
-        role: item.role,
-        content: item.content,
-      })),
+You should:
+- Answer Bible questions clearly.
+- Use Scripture references when appropriate.
+- Understand follow-up questions.
+- Use the previous conversation to understand what the user means.
+- Be respectful and patient.
+- Do not pretend to be a human.
+- If the user asks about something unrelated to the Bible, still answer helpfully.
+`,
+
+      input: conversation,
     });
 
     return res.status(200).json({
